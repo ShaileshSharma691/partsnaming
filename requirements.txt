@@ -1,0 +1,2 @@
+Pillow>=10.0
+# Optional OCR mode: pytesseract>=0.3.10 (also requires Tesseract OCR installed)
