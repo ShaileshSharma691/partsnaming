@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-import csv
 import json
 import math
 import re
@@ -10,6 +9,9 @@ from pathlib import Path
 from typing import Any
 
 from PIL import Image, ImageDraw, ImageFont
+from openpyxl import Workbook
+from openpyxl.styles import Alignment, Font, PatternFill
+from openpyxl.utils import get_column_letter
 
 
 BLUE = (32, 91, 177)
@@ -69,6 +71,25 @@ def normalise_items(raw: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return items
 
 
+def validate_items(items: list[dict[str, Any]], image_path: Path) -> None:
+    """Reject invalid annotation coordinates before any output is created."""
+    with Image.open(image_path) as image:
+        width, height = image.size
+    for item in items:
+        for key, limit in (("x", width), ("target_x", width), ("y", height), ("target_y", height)):
+            value = item[key]
+            if not isinstance(value, (int, float)) or not 0 <= value < limit:
+                raise ValueError(
+                    f"{item['parameter']}: {key}={value!r} is outside image bounds "
+                    f"({width} x {height}). Review the JSON marker coordinates."
+                )
+        if item["x"] == item["target_x"] and item["y"] == item["target_y"]:
+            raise ValueError(
+                f"{item['parameter']}: marker and leader target are identical. "
+                "Place the marker in whitespace and target the exact callout."
+            )
+
+
 def ocr_draft(image_path: Path) -> list[dict[str, Any]]:
     """Produce a reviewable draft from OCR; do not use unreviewed values for QA."""
     try:
@@ -117,17 +138,30 @@ def ocr_draft(image_path: Path) -> list[dict[str, Any]]:
     return result
 
 
-def write_csv(items: list[dict[str, Any]], output_path: Path) -> None:
-    fields = ["Sr. No.", "Parameter", "Specification", "Tolerance", "Location / Notes"]
-    with output_path.open("w", newline="", encoding="utf-8") as file:
-        writer = csv.DictWriter(file, fieldnames=fields)
-        writer.writeheader()
-        for item in items:
-            writer.writerow({
-                "Sr. No.": item["serial"], "Parameter": item["parameter"],
-                "Specification": item["specification"], "Tolerance": item["tolerance"],
-                "Location / Notes": item["notes"],
-            })
+def write_excel(items: list[dict[str, Any]], output_path: Path) -> None:
+    """Create the formatted Excel inspection table requested for each drawing."""
+    headers = ["Sr. No.", "Parameter", "Specification", "Tolerance", "Location / Notes"]
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.title = "Extracted Dimensions"
+    sheet.append(headers)
+    for item in items:
+        sheet.append([item["serial"], item["parameter"], item["specification"], item["tolerance"], item["notes"]])
+
+    header_fill = PatternFill("solid", fgColor="1F4E78")
+    for cell in sheet[1]:
+        cell.fill = header_fill
+        cell.font = Font(color="FFFFFF", bold=True)
+        cell.alignment = Alignment(horizontal="center", vertical="center")
+    for row in sheet.iter_rows(min_row=2):
+        for cell in row:
+            cell.alignment = Alignment(vertical="top", wrap_text=True)
+    widths = (11, 34, 48, 22, 32)
+    for index, width in enumerate(widths, start=1):
+        sheet.column_dimensions[get_column_letter(index)].width = width
+    sheet.freeze_panes = "A2"
+    sheet.auto_filter.ref = sheet.dimensions
+    workbook.save(output_path)
 
 
 def annotate(image_path: Path, items: list[dict[str, Any]], output_path: Path) -> None:
@@ -158,12 +192,13 @@ def main() -> None:
     args.output_dir.mkdir(parents=True, exist_ok=True)
     raw = json.loads(args.items.read_text(encoding="utf-8")) if args.items else ocr_draft(args.image)
     items = number_items(normalise_items(raw))
-    write_csv(items, args.output_dir / "extracted_dimensions.csv")
+    validate_items(items, args.image)
+    write_excel(items, args.output_dir / "extracted_dimensions.xlsx")
     annotate(args.image, items, args.output_dir / "annotated_drawing.png")
     if args.ocr:
         (args.output_dir / "ocr_review_items.json").write_text(json.dumps(items, indent=2), encoding="utf-8")
     print(f"Created {args.output_dir / 'annotated_drawing.png'}")
-    print(f"Created {args.output_dir / 'extracted_dimensions.csv'}")
+    print(f"Created {args.output_dir / 'extracted_dimensions.xlsx'}")
 
 
 if __name__ == "__main__":

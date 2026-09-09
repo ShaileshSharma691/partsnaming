@@ -1,0 +1,13 @@
+[
+  {"type":"material_description","parameter":"Material / thickness","specification":"SHEET 3.15 THK.","x":95,"y":1685,"target_x":265,"target_y":1690,"notes":"Title block"},
+  {"type":"material_specification","parameter":"Material specification","specification":"DD: 1079, SS:4013A","x":95,"y":1735,"target_x":270,"target_y":1730,"notes":"Title block"},
+  {"type":"feature","view":"left","order":1,"parameter":"Top width","specification":"25","x":630,"y":165,"target_x":635,"target_y":205,"notes":""},
+  {"type":"feature","view":"left","order":2,"parameter":"Top hole position","specification":"15","x":860,"y":245,"target_x":820,"target_y":300,"notes":""},
+  {"type":"feature","view":"left","order":3,"parameter":"Hole diameter","specification":"Dia 11","x":800,"y":520,"target_x":680,"target_y":430,"notes":""},
+  {"type":"feature","view":"right","order":4,"parameter":"Upper length","specification":"50","x":1450,"y":365,"target_x":1410,"target_y":480,"notes":""},
+  {"type":"feature","view":"right","order":5,"parameter":"Middle length","specification":"25","x":1450,"y":620,"target_x":1410,"target_y":720,"notes":""},
+  {"type":"feature","view":"right","order":6,"parameter":"Overall height","specification":"140","x":1570,"y":660,"target_x":1515,"target_y":800,"notes":""},
+  {"type":"feature","view":"right","order":7,"parameter":"Hole diameter","specification":"Dia 7","x":1180,"y":870,"target_x":1015,"target_y":955,"notes":""},
+  {"type":"feature","view":"right","order":8,"parameter":"Hole centre height","specification":"30","x":940,"y":1160,"target_x":1035,"target_y":1225,"notes":""},
+  {"type":"mass","parameter":"Final mass","specification":"0.08 kg","x":930,"y":1980,"target_x":1010,"target_y":1990,"notes":"Last entry"}
+]

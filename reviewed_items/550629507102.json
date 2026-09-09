@@ -1,0 +1,17 @@
+[
+  {"type":"material_description","parameter":"Material / thickness","specification":"5 mm Thk - T SH HR-Fe410","tolerance":"N/A","x":275,"y":1660,"target_x":330,"target_y":1685,"notes":"Title block"},
+  {"type":"material_specification","parameter":"Material specification","specification":"TS23521","tolerance":"N/A","x":275,"y":1715,"target_x":330,"target_y":1725,"notes":"Title block"},
+  {"type":"feature","view":"main","order":3,"parameter":"Top radius","specification":"R7 TYP","tolerance":"Per ISO 2768 m","x":610,"y":330,"target_x":690,"target_y":410,"notes":""},
+  {"type":"feature","view":"main","order":4,"parameter":"Top width","specification":"25","tolerance":"Reference","x":810,"y":265,"target_x":745,"target_y":330,"notes":"Reference dimension"},
+  {"type":"feature","view":"main","order":5,"parameter":"Height","specification":"100","tolerance":"Per ISO 2768 m","x":440,"y":620,"target_x":600,"target_y":620,"notes":""},
+  {"type":"feature","view":"main","order":6,"parameter":"Angle","specification":"103 deg","tolerance":"Per drawing","x":1030,"y":480,"target_x":835,"target_y":510,"notes":""},
+  {"type":"feature","view":"main","order":7,"parameter":"Bend radius","specification":"R12","tolerance":"Per ISO 2768 m","x":920,"y":635,"target_x":875,"target_y":690,"notes":""},
+  {"type":"feature","view":"main","order":8,"parameter":"End height","specification":"23","tolerance":"Per ISO 2768 m","x":1220,"y":700,"target_x":1280,"target_y":715,"notes":""},
+  {"type":"feature","view":"main","order":9,"parameter":"Offset","specification":"43","tolerance":"Reference","x":760,"y":850,"target_x":745,"target_y":895,"notes":"Reference dimension"},
+  {"type":"feature","view":"main","order":10,"parameter":"Overall length","specification":"127","tolerance":"Per drawing","x":1000,"y":935,"target_x":1000,"target_y":960,"notes":""},
+  {"type":"feature","view":"side","order":11,"parameter":"Side-view length","specification":"50","tolerance":"Reference","x":1140,"y":1025,"target_x":1120,"target_y":1050,"notes":"Reference dimension"},
+  {"type":"feature","view":"side","order":12,"parameter":"Side-view angle","specification":"15 deg","tolerance":"Per drawing","x":1260,"y":1110,"target_x":1240,"target_y":1140,"notes":""},
+  {"type":"feature","view":"side","order":13,"parameter":"Bend radius","specification":"R5","tolerance":"Per ISO 2768 m","x":930,"y":1165,"target_x":990,"target_y":1120,"notes":""},
+  {"type":"mass","parameter":"Final mass","specification":"0.216 kg","tolerance":"N/A","x":1040,"y":1980,"target_x":1035,"target_y":2010,"notes":"Last before note"},
+  {"type":"note","parameter":"General note","specification":"GENERAL TOLERANCE TO BE MAINTAINED AS PER TS 12130m.","tolerance":"N/A","x":630,"y":1380,"target_x":700,"target_y":1400,"notes":"Always last"}
+]
