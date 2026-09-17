@@ -12,7 +12,9 @@ from PIL import Image, ImageDraw, ImageFont
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter
-
+from openpyxl import load_workbook
+from openpyxl.cell.cell import MergedCell
+import datetime
 
 BLUE = (32, 91, 177)
 TITLE_TYPES = ("material_description", "material_specification")
@@ -71,24 +73,27 @@ def normalise_items(raw: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return items
 
 
-def validate_items(items: list[dict[str, Any]], image_path: Path) -> None:
+def validate_items(items: list[dict[str, Any]], image_path: Path,
+                   allow_identical_marker_target: bool = False) -> None:
     """Reject invalid annotation coordinates before any output is created."""
     with Image.open(image_path) as image:
         width, height = image.size
     for item in items:
-        for key, limit in (("x", width), ("target_x", width), ("y", height), ("target_y", height)):
+        for key, limit in (("x", width), ("target_x", width),
+                           ("y", height), ("target_y", height)):
             value = item[key]
             if not isinstance(value, (int, float)) or not 0 <= value < limit:
                 raise ValueError(
                     f"{item['parameter']}: {key}={value!r} is outside image bounds "
                     f"({width} x {height}). Review the JSON marker coordinates."
                 )
-        if item["x"] == item["target_x"] and item["y"] == item["target_y"]:
+        if (not allow_identical_marker_target
+                and item["x"] == item["target_x"]
+                and item["y"] == item["target_y"]):
             raise ValueError(
                 f"{item['parameter']}: marker and leader target are identical. "
                 "Place the marker in whitespace and target the exact callout."
             )
-
 
 def ocr_draft(image_path: Path) -> list[dict[str, Any]]:
     """Produce a reviewable draft from OCR; do not use unreviewed values for QA."""
@@ -138,29 +143,56 @@ def ocr_draft(image_path: Path) -> list[dict[str, Any]]:
     return result
 
 
-def write_excel(items: list[dict[str, Any]], output_path: Path) -> None:
-    """Create the formatted Excel inspection table requested for each drawing."""
-    headers = ["Sr. No.", "Parameter", "Specification", "Tolerance", "Location / Notes"]
-    workbook = Workbook()
-    sheet = workbook.active
-    sheet.title = "Extracted Dimensions"
-    sheet.append(headers)
-    for item in items:
-        sheet.append([item["serial"], item["parameter"], item["specification"], item["tolerance"], item["notes"]])
+def safe_write(sheet, row: int, col: int, value) -> None:
+    """Write to a cell, safely handling merged cells.
 
-    header_fill = PatternFill("solid", fgColor="1F4E78")
-    for cell in sheet[1]:
-        cell.fill = header_fill
-        cell.font = Font(color="FFFFFF", bold=True)
-        cell.alignment = Alignment(horizontal="center", vertical="center")
-    for row in sheet.iter_rows(min_row=2):
-        for cell in row:
-            cell.alignment = Alignment(vertical="top", wrap_text=True)
-    widths = (11, 34, 48, 22, 32)
-    for index, width in enumerate(widths, start=1):
-        sheet.column_dimensions[get_column_letter(index)].width = width
-    sheet.freeze_panes = "A2"
-    sheet.auto_filter.ref = sheet.dimensions
+    If the target cell is part of a merged range, the value is written
+    to the top-left cell of that range instead.
+    """
+    cell = sheet.cell(row=row, column=col)
+    if isinstance(cell, MergedCell):
+        # Find the merged range that contains this cell
+        for merged_range in sheet.merged_cells.ranges:
+            if cell.coordinate in merged_range:
+                top_left = sheet.cell(
+                    row=merged_range.min_row,
+                    column=merged_range.min_col,
+                )
+                top_left.value = value
+                return
+    else:
+        cell.value = value
+
+
+def write_excel(items: list[dict[str, Any]], output_path: Path, image_path: Path) -> None:
+    """Load the AOI template and inject extracted data."""
+    template_path = Path(__file__).resolve().parent / "554743810147 AOI.xlsx"
+    if not template_path.exists():
+        raise FileNotFoundError(f"Template not found: {template_path}")
+
+    workbook = load_workbook(template_path)
+    sheet = workbook.worksheets[0]          # first sheet: 554743810147AOI
+
+    # ---------- header updates ----------
+    # Extract part number from the image filename (e.g. "SAMPLE_2-1.png" -> "SAMPLE_2")
+    part_no = image_path.stem.split('-')[0]
+
+    safe_write(sheet, 2, 3, part_no)        # C2  – PART NO
+    safe_write(sheet, 4, 3, part_no)        # C4  – DRAWING NO
+
+    today = datetime.date.today().strftime("%d.%m.%Y")
+    safe_write(sheet, 2, 14, f"DATE:-{today}")  # N2  – DATE
+
+    # ---------- data table (starts at row 10) ----------
+    start_row = 10
+    for i, item in enumerate(items):
+        r = start_row + i
+        safe_write(sheet, r, 1, item["serial"])          # A – Sr. No.
+        safe_write(sheet, r, 2, item["parameter"])       # B – Parameter
+        safe_write(sheet, r, 3, item["specification"])   # C – Specification
+        safe_write(sheet, r, 4, item["tolerance"])       # D – Tolerance
+        # Columns E and beyond are left untouched (pre-filled template data)
+
     workbook.save(output_path)
 
 
@@ -192,8 +224,8 @@ def main() -> None:
     args.output_dir.mkdir(parents=True, exist_ok=True)
     raw = json.loads(args.items.read_text(encoding="utf-8")) if args.items else ocr_draft(args.image)
     items = number_items(normalise_items(raw))
-    validate_items(items, args.image)
-    write_excel(items, args.output_dir / "extracted_dimensions.xlsx")
+    validate_items(items, args.image, allow_identical_marker_target=args.ocr)
+    write_excel(items, args.output_dir / "extracted_dimensions.xlsx", args.image)
     annotate(args.image, items, args.output_dir / "annotated_drawing.png")
     if args.ocr:
         (args.output_dir / "ocr_review_items.json").write_text(json.dumps(items, indent=2), encoding="utf-8")
